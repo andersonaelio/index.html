@@ -236,7 +236,8 @@ input, select, textarea { font-family: inherit; }
   z-index: 0;
 }
 
-.topbar, .content { position: relative; z-index: 1; }
+.topbar { position: relative; z-index: 5; }
+.content { position: relative; z-index: 1; }
 
 .topbar {
   height: 64px;
@@ -311,6 +312,51 @@ input, select, textarea { font-family: inherit; }
   background: var(--alert);
   border: 2px solid var(--surface);
 }
+.notif-wrap { position: relative; }
+.notif-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  z-index: 50;
+  padding: 6px;
+}
+.notif-dropdown.show { display: block; }
+.notif-empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+.notif-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 150ms var(--ease);
+}
+.notif-item:hover { background: rgba(245,196,0,0.06); }
+.notif-item + .notif-item { border-top: 1px solid var(--border); }
+.notif-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.notif-body { flex: 1; min-width: 0; }
+.notif-title { font-size: 12.5px; color: var(--text); font-weight: 500; }
+.notif-sub { font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
 
 .cta-primary {
   background: var(--accent);
@@ -1602,6 +1648,7 @@ input, select, textarea { font-family: inherit; }
   background: var(--accent-soft); color: var(--accent);
   border: 1px solid var(--accent-line);
   transition: all 160ms var(--ease); white-space: nowrap;
+  text-decoration: none; cursor: pointer;
 }
 .msg-send:hover { background: var(--accent); color: #000; }
 .msg-send svg { width: 13px; height: 13px; }
@@ -1914,10 +1961,13 @@ input, select, textarea { font-family: inherit; }
           <input type="text" placeholder="Buscar aluno..." id="globalSearch">
           <span class="search-kbd">⌘K</span>
         </div>
-        <button class="topbar-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-          <span class="dot"></span>
-        </button>
+        <div class="notif-wrap">
+          <button class="topbar-btn" id="notifBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            <span class="dot" id="notifDot"></span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown"></div>
+        </div>
         <button class="cta-primary" onclick="openNovoModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo aluno
@@ -1942,7 +1992,7 @@ input, select, textarea { font-family: inherit; }
           <div class="hs-quick">
             <span class="hsq-label">Atalhos</span>
             <button class="hsq-chip" onclick="window.navTo('alunos')">Ver todos os alunos</button>
-            <button class="hsq-chip" onclick="window.navTo('alunos')">+ Cadastrar novo</button>
+            <button class="hsq-chip" onclick="openNovoModal()">+ Cadastrar novo</button>
           </div>
         </div>
 
@@ -2691,37 +2741,101 @@ input, select, textarea { font-family: inherit; }
   // ============================================================
   // MÓDULO AGENDA
   // ============================================================
-  const agendaData = [
-    { dia: 'Seg', data: 14, today: false, slots: [
-      { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
-      { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+  const agendaWeeks = [
+    { label: 'Semana passada', dias: [
+      { dia: 'Seg', data: 7, today: false, slots: [
+        { time: '07:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Ter', data: 8, today: false, slots: [
+        { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+        { time: '19:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Qua', data: 9, today: false, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '14:00', info: 'Avaliação · Rafael Santos', tipo: 'aval' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Qui', data: 10, today: false, slots: [
+        { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+        { time: '19:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Sex', data: 11, today: false, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Sáb', data: 12, today: false, slots: [
+        { time: '09:00', info: 'Turma · 3 alunos', tipo: 'sessao' },
+      ]},
     ]},
-    { dia: 'Ter', data: 15, today: false, slots: [
-      { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
-      { time: '14:00', info: 'Gabriel Souza', tipo: 'aval' },
-      { time: '19:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+    { label: 'Esta semana', dias: [
+      { dia: 'Seg', data: 14, today: false, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Ter', data: 15, today: false, slots: [
+        { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+        { time: '14:00', info: 'Gabriel Souza', tipo: 'aval' },
+        { time: '19:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Qua', data: 16, today: true, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Qui', data: 17, today: false, slots: [
+        { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+        { time: '19:00', info: 'Avaliação · Fernanda', tipo: 'aval' },
+        { time: '19:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Sex', data: 18, today: false, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Sáb', data: 19, today: false, slots: [
+        { time: '09:00', info: 'Turma · 4 alunos', tipo: 'sessao' },
+      ]},
     ]},
-    { dia: 'Qua', data: 16, today: true, slots: [
-      { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
-      { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
-    ]},
-    { dia: 'Qui', data: 17, today: false, slots: [
-      { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
-      { time: '19:00', info: 'Avaliação · Fernanda', tipo: 'aval' },
-      { time: '19:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
-    ]},
-    { dia: 'Sex', data: 18, today: false, slots: [
-      { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
-      { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
-    ]},
-    { dia: 'Sáb', data: 19, today: false, slots: [
-      { time: '09:00', info: 'Turma · 4 alunos', tipo: 'sessao' },
+    { label: 'Próxima semana', dias: [
+      { dia: 'Seg', data: 21, today: false, slots: [
+        { time: '07:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Ter', data: 22, today: false, slots: [
+        { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+        { time: '19:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Qua', data: 23, today: false, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '15:00', info: 'Avaliação · Marina Oliveira', tipo: 'aval' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Qui', data: 24, today: false, slots: [
+        { time: '07:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+        { time: '19:00', info: 'Turma · 7 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Sex', data: 25, today: false, slots: [
+        { time: '07:00', info: 'Turma · 8 alunos', tipo: 'sessao' },
+        { time: '18:00', info: 'Turma · 6 alunos', tipo: 'sessao' },
+      ]},
+      { dia: 'Sáb', data: 26, today: false, slots: [
+        { time: '09:00', info: 'Turma · 5 alunos', tipo: 'sessao' },
+      ]},
     ]},
   ];
+  let agendaWeekIdx = 1;
 
   const agendaGrid = document.getElementById('agendaGrid');
-  if (agendaGrid) {
-    agendaGrid.innerHTML = agendaData.map(d => {
+  const weekLabel = document.getElementById('weekLabel');
+  const weekPrevBtn = document.getElementById('weekPrev');
+  const weekNextBtn = document.getElementById('weekNext');
+
+  function renderAgendaWeek() {
+    const week = agendaWeeks[agendaWeekIdx];
+    if (weekLabel) weekLabel.textContent = week.label;
+    if (weekPrevBtn) weekPrevBtn.style.opacity = agendaWeekIdx === 0 ? '0.35' : '1';
+    if (weekNextBtn) weekNextBtn.style.opacity = agendaWeekIdx === agendaWeeks.length - 1 ? '0.35' : '1';
+    if (!agendaGrid) return;
+    agendaGrid.innerHTML = week.dias.map(d => {
       const slots = d.slots.map(s => `
         <div class="agenda-slot ${s.tipo === 'aval' ? 'aval' : ''}">
           <div class="agenda-slot-time">${s.time}</div>
@@ -2737,6 +2851,14 @@ input, select, textarea { font-family: inherit; }
         </div>`;
     }).join('');
   }
+  renderAgendaWeek();
+
+  if (weekPrevBtn) weekPrevBtn.addEventListener('click', () => {
+    if (agendaWeekIdx > 0) { agendaWeekIdx--; renderAgendaWeek(); }
+  });
+  if (weekNextBtn) weekNextBtn.addEventListener('click', () => {
+    if (agendaWeekIdx < agendaWeeks.length - 1) { agendaWeekIdx++; renderAgendaWeek(); }
+  });
 
   // ============================================================
   // MÓDULO FINANCEIRO
@@ -2833,16 +2955,16 @@ input, select, textarea { font-family: inherit; }
   // ============================================================
   const msgGroupsData = [
     { tipo: 'vencimento', titulo: 'Vence amanhã', sub: 'Lembrete amigável de vencimento', icon: '<path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>',
-      msgs: [{ nome: 'Carolina Mendes', preview: 'Oi Carol! Passando pra lembrar que sua mensalidade vence amanhã...' }] },
+      msgs: [{ nome: 'Carolina Mendes', tel: '(48) 99123-4567', preview: 'Oi Carol! Passando pra lembrar que sua mensalidade vence amanhã...', msg: 'Oi Carol! Passando pra lembrar que sua mensalidade vence amanhã. Qualquer coisa é só chamar por aqui 💪' }] },
     { tipo: 'atraso', titulo: 'Cobrança de atraso', sub: 'Mensalidade vencida', icon: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
       msgs: [
-        { nome: 'Rafael Santos', preview: 'Oi Rafael! Vi aqui que a mensalidade de março ficou pendente...' },
-        { nome: 'Aline Borges', preview: 'Oi Aline! Tudo bem? Sua mensalidade está em aberto desde 20/02...' },
+        { nome: 'Rafael Santos', tel: '(48) 99234-5678', preview: 'Oi Rafael! Vi aqui que a mensalidade de março ficou pendente...', msg: 'Oi Rafael! Vi aqui que a mensalidade de março ficou pendente. Consegue regularizar quando der? Qualquer dúvida me chama.' },
+        { nome: 'Aline Borges', tel: '(48) 99345-6789', preview: 'Oi Aline! Tudo bem? Sua mensalidade está em aberto desde 20/02...', msg: 'Oi Aline! Tudo bem? Sua mensalidade está em aberto desde 20/02. Dá uma olhada quando puder, viu?' },
       ] },
     { tipo: 'falta', titulo: 'Sumiu há 7 dias', sub: 'Mensagem de incentivo pra quem faltou', icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
-      msgs: [{ nome: 'Lucas Ferreira', preview: 'E aí Lucas! Senti sua falta nos últimos treinos. Bora marcar...' }] },
+      msgs: [{ nome: 'Lucas Ferreira', tel: '(48) 99456-7890', preview: 'E aí Lucas! Senti sua falta nos últimos treinos. Bora marcar...', msg: 'E aí Lucas! Senti sua falta nos últimos treinos. Bora marcar um horário essa semana? Te espero lá 💪' }] },
     { tipo: 'aniversario', titulo: 'Aniversariantes', sub: 'Parabéns do studio', icon: '<path d="M12 2l2 5 5 .5-4 3.5 1 5-4-2.5L8 16l1-5-4-3.5 5-.5z"/>',
-      msgs: [{ nome: 'Marina Oliveira', preview: 'Parabéns, Marina! 🎉 Que esse novo ano traga muita saúde e força...' }] },
+      msgs: [{ nome: 'Marina Oliveira', tel: '(48) 99567-8901', preview: 'Parabéns, Marina! 🎉 Que esse novo ano traga muita saúde e força...', msg: 'Parabéns, Marina! 🎉 Que esse novo ano traga muita saúde e força. Time BODYMIND te deseja tudo de bom!' }] },
   ];
 
   const msgGroups = document.getElementById('msgGroups');
@@ -2867,10 +2989,10 @@ input, select, textarea { font-family: inherit; }
                 <div class="msg-name">${m.nome}</div>
                 <div class="msg-preview">${m.preview}</div>
               </div>
-              <button class="msg-send">
+              <a class="msg-send" href="https://wa.me/55${m.tel.replace(/\D/g, '')}?text=${encodeURIComponent(m.msg)}" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3a8.38 8.38 0 0 1 8.5 8.5z"/></svg>
                 Enviar
-              </button>
+              </a>
             </div>`).join('')}
         </div>
       </div>`).join('');
@@ -3404,6 +3526,47 @@ input, select, textarea { font-family: inherit; }
     scrim.classList.remove('show');
   });
 
+  // Notificações — reaproveita os grupos de mensagens (vencimento, atraso, falta, aniversário)
+  const notifBtn = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  const notifDot = document.getElementById('notifDot');
+
+  function renderNotifDropdown() {
+    if (!notifDropdown) return;
+    const items = [];
+    msgGroupsData.forEach(g => {
+      g.msgs.forEach(m => {
+        items.push({ nome: m.nome, titulo: g.titulo, sub: m.preview, tipo: g.tipo });
+      });
+    });
+    if (notifDot) notifDot.style.display = items.length ? 'block' : 'none';
+    if (!items.length) {
+      notifDropdown.innerHTML = '<div class="notif-empty">Nenhuma notificação por enquanto.</div>';
+      return;
+    }
+    notifDropdown.innerHTML = items.map(it => `
+      <div class="notif-item" onclick="window.navTo('mensagens')">
+        <span class="notif-dot"></span>
+        <div class="notif-body">
+          <div class="notif-title">${it.nome} · ${it.titulo}</div>
+          <div class="notif-sub">${it.sub}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  if (notifBtn && notifDropdown) {
+    notifBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!notifDropdown.classList.contains('show')) renderNotifDropdown();
+      notifDropdown.classList.toggle('show');
+    });
+    document.addEventListener('click', (e) => {
+      if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
+        notifDropdown.classList.remove('show');
+      }
+    });
+  }
+
   // ⌘K / Ctrl+K focar busca
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -3464,14 +3627,6 @@ input, select, textarea { font-family: inherit; }
   novoOverlay.addEventListener('click', (e) => {
     if (e.target === novoOverlay) closeNovoModal();
   });
-
-  // Conectar botões "Novo aluno" do topbar ao modal
-  document.querySelectorAll('[onclick*="navTo(\'alunos\')"]').forEach(btn => {
-    btn.setAttribute('onclick', 'event.stopPropagation(); openNovoModal()');
-  });
-  // Botão específico do topbar
-  const topbarCta = document.querySelector('.cta-primary');
-  if (topbarCta) topbarCta.setAttribute('onclick', 'openNovoModal()');
 
 })();
 </script>
