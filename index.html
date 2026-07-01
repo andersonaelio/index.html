@@ -2486,17 +2486,37 @@ input, select, textarea { font-family: inherit; }
 
   heroSearch.addEventListener('input', (e) => renderResults(e.target.value));
 
+  // Topbar search — redireciona pro dashboard e usa a busca principal
+  const globalSearch = document.getElementById('globalSearch');
+  if (globalSearch) {
+    globalSearch.addEventListener('input', (e) => {
+      const v = e.target.value;
+      if (v.trim()) {
+        navTo('dashboard');
+        heroSearch.value = v;
+        renderResults(v);
+        heroSearch.focus();
+      }
+    });
+  }
+
   // ============ COBRANÇAS ============
   const cobrancaList = document.getElementById('cobrancaList');
-  cobrancaList.innerHTML = cobrancas.map(c => `
+  cobrancaList.innerHTML = cobrancas.map(c => {
+    const al = alunos.find(a => a.nome === c.nome);
+    const waNum = al ? al.tel.replace(/\D/g, '') : '';
+    const waMsg = encodeURIComponent(`Oi ${c.nome.split(' ')[0]}! Tudo bem? Passando pra lembrar que sua mensalidade está pendente. Qualquer dúvida é só chamar por aqui.`);
+    const waHref = waNum ? `https://wa.me/55${waNum}?text=${waMsg}` : '#';
+    return `
     <div class="mini-row">
       <div class="mini-avatar">${initials(c.nome)}</div>
       <div class="mini-info">
         <div class="mini-name">${c.nome}</div>
         <div class="mini-sub">${c.sub}</div>
       </div>
-      <button class="mini-action">Cobrar no WhatsApp</button>
-    </div>`).join('');
+      <a class="mini-action" href="${waHref}" target="_blank" rel="noopener" style="text-decoration:none;">Cobrar no WhatsApp</a>
+    </div>`;
+  }).join('');
 
   // ============ VAGAS NAS TURMAS (compacto) ============
   const vagasGrid = document.getElementById('vagasGrid');
@@ -2565,7 +2585,7 @@ input, select, textarea { font-family: inherit; }
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6.5 6.5h11M6.5 17.5h11M4 9v6M20 9v6"/></svg>
             Treino
           </button>
-          <button class="ficha-btn ghost">
+          <button class="ficha-btn ghost" onclick="window.emBreve(this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Editar
           </button>
@@ -2672,6 +2692,14 @@ input, select, textarea { font-family: inherit; }
     if (alunosLayout) alunosLayout.classList.remove('showing-ficha');
     alunoAtivo = null;
     renderAlunosList();
+  };
+
+  window.emBreve = function(btn) {
+    const orig = btn.innerHTML;
+    btn.textContent = 'Em breve ✦';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; btn.style.opacity = ''; }, 1500);
   };
 
   if (alunosSearch) {
@@ -2946,7 +2974,7 @@ input, select, textarea { font-family: inherit; }
           <div class="pec-detail-row"><span class="pec-dl">Condição</span><span class="pec-dv">${p.taxa}</span></div>
           <div class="pec-detail-row"><span class="pec-dl">Alunos ativos</span><span class="pec-active">${p.ativos} ativos</span></div>
         </div>
-        <button class="pec-edit-btn">Editar plano</button>
+        <button class="pec-edit-btn" onclick="window.emBreve(this)">Editar plano</button>
       </div>`).join('');
   }
 
@@ -3145,7 +3173,7 @@ input, select, textarea { font-family: inherit; }
     treinosMain.innerHTML = `
       <div class="treino-main-head">
         <div class="treino-main-title">Treino ${letra} · ${div.nome}</div>
-        <button class="ficha-btn ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button>
+        <button class="ficha-btn ghost" onclick="window.emBreve(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button>
       </div>
       <div class="treino-ex-list">
         ${div.exs.map((ex, i) => `
@@ -3627,6 +3655,9 @@ input, select, textarea { font-family: inherit; }
   novoOverlay.addEventListener('click', (e) => {
     if (e.target === novoOverlay) closeNovoModal();
   });
+
+  // Fechar pelo X do header
+  document.getElementById('novoClose')?.addEventListener('click', closeNovoModal);
 
 })();
 </script>
